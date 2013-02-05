@@ -30,13 +30,13 @@
 
   <script type="text/javascript">
     StackMob.init({
-      appName: "stripe",
-      clientSubdomain: "stackmob339",
-      publicKey: "19f10b59-1cb9-41b8-9ff0-c9dffbabdda9",
-      apiVersion: 0
+       appName: "stripe",
+-      clientSubdomain: "stackmob339",
+-      publicKey: "19f10b59-1cb9-41b8-9ff0-c9dffbabdda9",
+-      apiVersion: 0
     });
 
-    Stripe.setPublishableKey('pk_FUI0oXqpXT8MhOQyTi4bU44yaEcOi');
+    Stripe.setPublishableKey('pk_test_nv7xgFYZEUnPff9QQwkoZT40');
   
     (function($){ 
 
@@ -118,6 +118,7 @@
                      },
                       
                      error: function(error) {
+                       alert("error, make sure you've uploaded the Stripe Custom code example");
                        console.log(error);
                      }
                   });
