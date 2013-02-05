@@ -107,12 +107,14 @@
                 if (status === 200) {
                   description = $('.description').val();
                   amount = $('.amount').val();
-
-                  StackMob.customcode('stripe', {token : response.id,amount : amount, description : description}, {
+                  var newamount = amount.split('.').join('');
+                  
+                  console.log(newamount);
+                  StackMob.customcode('stripe', {token : response.id,amount : newamount, description : description}, {
                      success: function(data) {
                       obj = JSON.parse(data.response_body);
-
-                      alert(obj.object + " " + obj.amount + " " + obj.currency)                       
+                      var dollarAmt = obj.amount / 100;
+                      alert(obj.object + " $" + dollarAmt.toFixed(2) + " " + obj.currency)                       
                      },
                       
                      error: function(error) {
@@ -189,23 +191,23 @@
       <legend>Stripe Demo</legend>
 
       <div class="row">
-        <div class="four columns">
+        <div class="eight columns">
           <label>Card Number</label>
           <input type="text" size="20" autocomplete="off" class="card-number" value="4242424242424242"/>
         </div>
-        <div class="two columns end">
+        <div class="four columns end">
             <label>CVC</label>
           <input type="text" size="4" autocomplete="off" class="card-cvc" value="123"/>
         </div>
       </div>
 
       <div class="row">
-        <div class="three columns">
+        <div class="six columns">
           <label>Exp (MM)</label>
           <input type="text" size="2" class="card-expiry-month" value="5"/>
         </div>
         
-        <div class="three columns end">
+        <div class="six columns end">
           <label> (YYYY )</label>
           <input type="text" size="4" class="card-expiry-year" value="2015"/>
         </div>
@@ -213,9 +215,9 @@
       </div>
       
       <div class="row">
-        <div class="six columns">
+        <div class="twelve columns">
           <label>Amount</label>
-          <input type="text" size="4" class="amount" disabled=true value="100"/>
+          <input type="text" size="4" class="amount" disabled=true value="10.00"/>
           <label>Description</label>
           <input type="text" size="4" class="description" disabled=true value="cool things"/>
         </div>
