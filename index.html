@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <title>StackMob Stripe</title>
+
+  <!-- Included CSS Files -->
+  <link rel="stylesheet" href="stylesheets/foundation.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+  <script type="text/javascript" src="http://static.stackmob.com/js/stackmob-js-0.7.0-bundled-min.js"></script>
+
+  <script type="text/javascript" src="https://js.stripe.com/v1/"></script>
+
+  <script type="text/javascript">
+    StackMob.init({
+      appName: "stripe",
+      clientSubdomain: "stackmob339",
+      publicKey: "19f10b59-1cb9-41b8-9ff0-c9dffbabdda9",
+      apiVersion: 0
+    });
+
+    Stripe.setPublishableKey('pk_FUI0oXqpXT8MhOQyTi4bU44yaEcOi');
+  
+    (function($){ 
+
+      var HomeView = Backbone.View.extend({
+        el: 'body',
+     
+        initialize: function() {
+          this.template = _.template($('#page-home').html());
+          this.render();
+        },
+
+        render: function() {
+          var el = this.$el
+
+          el.empty();
+          el.append(this.template());
+
+          new StripeView();;
+
+          return this;
+        },
+      });
+
+    
+      var StripeView = Backbone.View.extend({
+        events: {  
+          "click #submitBtn": "save",  
+          "keypress .title":  "onEnter"
+        },
+
+        initialize: function() {
+          this.template = _.template($('#item-edit').html());
+          this.collection = this.options.collection;
+          this.render();
+        },
+
+        render: function() {
+          
+          $('#stripeContainer').empty();
+          $(this.el).html(this.template());
+          $('#stripeContainer').append(this.el);
+
+          return this;
+        },
+
+        onEnter: function(e) {
+          if (e.keyCode == 13) {
+            this.save(e); 
+          }
+        },
+
+        save: function(e) {
+          var collection = this.collection,
+                    item = $('#stripeForm').serializeObject();
+          
+          e.preventDefault();
+          $('.alert-box').hide();
+
+           // disable the submit button to prevent repeated clicks
+            $('.submit-button').attr("disabled", "disabled");
+
+            Stripe.createToken({
+                number: $('.card-number').val(),
+                cvc: $('.card-cvc').val(),
+                exp_month: $('.card-expiry-month').val(),
+                exp_year: $('.card-expiry-year').val()
+            }, function(status, response) {
+                if (status === 200) {
+                  description = $('.description').val();
+                  amount = $('.amount').val();
+
+                  StackMob.customcode('stripe', {token : response.id,amount : amount, description : description}, {
+                     success: function(data) {
+                      obj = JSON.parse(data.response_body);
+
+                      alert(obj.object + " " + obj.amount + " " + obj.currency)                       
+                     },
+                      
+                     error: function(error) {
+                       console.log(error);
+                     }
+                  });
+                }
+            });
+
+          return this;
+        }
+      });
+
+    
+      AppRouter = Backbone.Router.extend({
+          routes:{
+              "":"home"
+          },
+          home:function() {
+              new HomeView();
+          }
+      });
+
+
+    }(jQuery));
+
+    $(document).ready(function () {
+          app_router = new AppRouter();
+          Backbone.history.start(); 
+          $('.alert-box').hide();
+    });
+
+    $.fn.serializeObject = function()
+    {
+        var o = {};
+        var a = this.serializeArray();
+        $.each(a, function() {
+            if (o[this.name] !== undefined) {
+                if (!o[this.name].push) {
+                    o[this.name] = [o[this.name]];
+                }
+                o[this.name].push(this.value || '');
+            } else {
+                o[this.name] = this.value || '';
+            }
+        });
+        return o;
+    };
+
+  </script> 
+
+  <script type="text/template" id="page-home">
+    <div class="row" style="margin-top:20px;">
+      <div class="eight columns centered">
+        <div class="panel radius">
+          <div class="row">
+            <h3>Stripe / StackMob</h3>
+          </div>
+          <div id="stripeContainer">
+            
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </script>
+
+  <script type="text/template" id="item-edit">
+    <div id="list">
+
+    </div>
+    <form  method="post" id="stripeForm">
+      <fieldset style="padding-bottom:10px;">
+      <legend>Stripe Demo</legend>
+
+      <div class="row">
+        <div class="four columns">
+          <label>Card Number</label>
+          <input type="text" size="20" autocomplete="off" class="card-number" value="4242424242424242"/>
+        </div>
+        <div class="two columns end">
+            <label>CVC</label>
+          <input type="text" size="4" autocomplete="off" class="card-cvc" value="123"/>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="three columns">
+          <label>Exp (MM)</label>
+          <input type="text" size="2" class="card-expiry-month" value="5"/>
+        </div>
+        
+        <div class="three columns end">
+          <label> (YYYY )</label>
+          <input type="text" size="4" class="card-expiry-year" value="2015"/>
+        </div>
+        
+      </div>
+      
+      <div class="row">
+        <div class="six columns">
+          <label>Amount</label>
+          <input type="text" size="4" class="amount" disabled=true value="100"/>
+          <label>Description</label>
+          <input type="text" size="4" class="description" disabled=true value="cool things"/>
+        </div>
+      </div>
+      
+      <input type="submit" id="submitBtn" class="large button" value="submit" />
+      </fieldset>
+    </form>
+  </script>
+
+  <script type="text/template" id="item-list">
+     <li><%= name %>  <a href="#" class="[tiny, small, medium, large] button">Button Text</a></li>
+  </script>
+
+</head>
+<body>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/foundation.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+</body>
+</html>
