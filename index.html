@@ -25,7 +25,7 @@
 
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
   <script type="text/javascript" src="http://static.stackmob.com/js/stackmob-js-0.7.0-bundled-min.js"></script>
-
+  <script type="text/javascript" src="javascripts/jquery.payment.js"></script>
   <script type="text/javascript" src="https://js.stripe.com/v1/"></script>
 
   <script type="text/javascript">
@@ -38,6 +38,8 @@
 
     Stripe.setPublishableKey('pk_test_nv7xgFYZEUnPff9QQwkoZT40');
   
+
+
     (function($){ 
 
       var HomeView = Backbone.View.extend({
@@ -79,6 +81,11 @@
           $(this.el).html(this.template());
           $('#stripeContainer').append(this.el);
 
+          $('.ammount').payment('restrictNumeric');
+          $('.card-number').payment('formatCardNumber');
+          $('.card-expiry').payment('formatCardExpiry');
+          $('.card-cvc').payment('formatCardCVC');
+
           return this;
         },
 
@@ -96,34 +103,63 @@
           $('.alert-box').hide();
 
            // disable the submit button to prevent repeated clicks
-            $('.submit-button').attr("disabled", "disabled");
+          $('.submit-button').attr("disabled", "disabled");
 
-            Stripe.createToken({
-                number: $('.card-number').val(),
-                cvc: $('.card-cvc').val(),
-                exp_month: $('.card-expiry-month').val(),
-                exp_year: $('.card-expiry-year').val()
+          if ( !$.payment.validateCardNumber($('input.card-number').val()) ) {
+            alert('Your card is not valid!');
+            return false;
+          }
+
+          var type = $.payment.cardType($('input.card-number').val());
+          if ( ! $.payment.validateCardCVC($('input.card-cvc').val(), type)) {
+            alert('Your CVC is not valid!');
+            return false;
+          }
+
+          if ( ! $.payment.validateCardCVC($('input.card-cvc').val(), type)) {
+            alert('Your CVC is not valid!');
+            return false;
+          }
+          
+          var exp = $('input.card-expiry').payment('cardExpiryVal');   
+          if ( ! $.payment.validateCardExpiry(exp.month, exp.year) ) {
+            alert('Your expiration date is not valid!');
+            return false;
+          }
+
+          Stripe.createToken({
+              number: $('input.card-number').val(),
+              cvc: $('input.card-cvc').val(),
+              exp_month: exp.month,
+              exp_year: exp.year
             }, function(status, response) {
-                if (status === 200) {
-                  description = $('.description').val();
-                  amount = $('.amount').val();
-                  var newamount = amount.split('.').join('');
-                  
-                  console.log(newamount);
-                  StackMob.customcode('stripe', {token : response.id,amount : newamount, description : description}, {
-                     success: function(data) {
-                      obj = JSON.parse(data.response_body);
-                      var dollarAmt = obj.amount / 100;
-                      alert(obj.object + " $" + dollarAmt.toFixed(2) + " " + obj.currency)                       
-                     },
-                      
-                     error: function(error) {
-                       alert("error, make sure you've uploaded the Stripe Custom code example");
-                       console.log(error);
-                     }
-                  });
-                }
-            });
+
+
+                  if (status === 200) {
+                    description = $('.description').val();
+                    amount = $('.amount').val();
+                    var newamount = amount.split('.').join('');
+                    
+                    StackMob.customcode('stripe', {token : response.id,amount : newamount, description : description}, {
+                       success: function(data) {
+                        obj = JSON.parse(data.response_body);
+                        var dollarAmt = obj.amount / 100;
+                        alert(obj.object + " $" + dollarAmt.toFixed(2) + " " + obj.currency)                       
+                       },
+                        
+                       error: function(error,response) {
+                        var data = JSON.parse(response.response_body);
+                        if(data.error != null) {
+                          alert(data.error.message);
+                        }
+
+                         alert("error, make sure you've uploaded the Stripe Custom code example.");
+                         console.log(error);
+                       }
+                    });
+                  }
+                
+          });
 
           return this;
         }
@@ -192,33 +228,24 @@
       <legend>Stripe Demo</legend>
 
       <div class="row">
-        <div class="eight columns">
+        <div class="six columns">
           <label>Card Number</label>
           <input type="text" size="20" autocomplete="off" class="card-number" value="4242424242424242"/>
         </div>
-        <div class="four columns end">
+        <div class="three columns">
+          <label>Exp Date</label>
+          <input type="text" size="10" class="card-expiry" value="" placeholder="MM/YYYY" />
+        </div>
+        <div class="three columns end">
             <label>CVC</label>
-          <input type="text" size="4" autocomplete="off" class="card-cvc" value="123"/>
+          <input type="text" size="6" autocomplete="off" class="card-cvc" value="123"/>
         </div>
       </div>
 
       <div class="row">
-        <div class="six columns">
-          <label>Exp (MM)</label>
-          <input type="text" size="2" class="card-expiry-month" value="5"/>
-        </div>
-        
-        <div class="six columns end">
-          <label> (YYYY )</label>
-          <input type="text" size="4" class="card-expiry-year" value="2015"/>
-        </div>
-        
-      </div>
-      
-      <div class="row">
         <div class="twelve columns">
           <label>Amount</label>
-          <input type="text" size="4" class="amount" disabled=true value="10.00"/>
+          <input type="text" size="4" class="amount"  value="10.00"/>
           <label>Description</label>
           <input type="text" size="4" class="description" disabled=true value="cool things"/>
         </div>
